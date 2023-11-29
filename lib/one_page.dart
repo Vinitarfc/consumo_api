@@ -14,7 +14,7 @@ class OnePage extends StatefulWidget {
 }
 
 class _OnePageState extends State<OnePage> {
-  ValueNotifier<int> valorAleatorio = ValueNotifier<int>(0);
+  ValueNotifier<List<Post>> posts = ValueNotifier<List<Post>>([]);
 
   callAPI() async {
     var client = http.Client();
@@ -23,8 +23,7 @@ class _OnePageState extends State<OnePage> {
       var response = await client.get(url);
       if (response.statusCode == 200) {
         var jsonResponse = jsonDecode(response.body) as List;
-        List<Post> posts = jsonResponse.map((e) => Post.fromJson(e)).toList();
-        print(posts);
+        posts.value = jsonResponse.map((e) => Post.fromJson(e)).toList();
       } else {
         print('Request failed with status: ${response.statusCode}.');
       }
@@ -38,23 +37,29 @@ class _OnePageState extends State<OnePage> {
     print('reconstruindo');
     return Scaffold(
       body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ValueListenableBuilder(
-              valueListenable: valorAleatorio,
-              builder: (_, value, __) => Text(
-                'Valor é: $value',
-                style: TextStyle(fontSize: 20),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ValueListenableBuilder<List<Post>>(
+                valueListenable: posts,
+                builder: (_, value, __) => ListView.builder(
+                  physics: NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  itemCount: value.length,
+                  itemBuilder: (_, idx) => ListTile(
+                    title: Text(value[idx].title),
+                  ),
+                ),
               ),
-            ),
-            SizedBox(height: 10),
-            CustomButtonWidget(
-              disable: false,
-              onPressed: () => callAPI(),
-              title: 'Ir para Segunda Page',
-            ),
-          ],
+              SizedBox(height: 10),
+              CustomButtonWidget(
+                disable: false,
+                onPressed: () => callAPI(),
+                title: 'Gerar lista',
+              ),
+            ],
+          ),
         ),
       ),
     );
