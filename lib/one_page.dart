@@ -15,11 +15,13 @@ class OnePage extends StatefulWidget {
 
 class _OnePageState extends State<OnePage> {
   ValueNotifier<List<Post>> posts = ValueNotifier<List<Post>>([]);
+  ValueNotifier<bool> inLoader = ValueNotifier<bool>(false);
 
   callAPI() async {
     var client = http.Client();
     var url = Uri.parse('https://jsonplaceholder.typicode.com/posts');
     try {
+      inLoader.value = true;
       var response = await client.get(url);
       if (response.statusCode == 200) {
         var jsonResponse = jsonDecode(response.body) as List;
@@ -27,8 +29,11 @@ class _OnePageState extends State<OnePage> {
       } else {
         print('Request failed with status: ${response.statusCode}.');
       }
+      //Abaixo é só para ver o funcionamento do "Loader"
+      await Future.delayed(Duration(seconds: 3));
     } finally {
       client.close();
+      inLoader.value = false;
     }
   }
 
@@ -41,16 +46,18 @@ class _OnePageState extends State<OnePage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              ValueListenableBuilder<List<Post>>(
-                valueListenable: posts,
-                builder: (_, value, __) => ListView.builder(
-                  physics: NeverScrollableScrollPhysics(),
-                  shrinkWrap: true,
-                  itemCount: value.length,
-                  itemBuilder: (_, idx) => ListTile(
-                    title: Text(value[idx].title),
-                  ),
-                ),
+              AnimatedBuilder(
+                animation: Listenable.merge([posts, inLoader]),
+                builder: (_, __) => inLoader.value
+                    ? CircularProgressIndicator()
+                    : ListView.builder(
+                        physics: NeverScrollableScrollPhysics(),
+                        shrinkWrap: true,
+                        itemCount: posts.value.length,
+                        itemBuilder: (_, idx) => ListTile(
+                          title: Text(posts.value[idx].title),
+                        ),
+                      ),
               ),
               SizedBox(height: 10),
               CustomButtonWidget(
